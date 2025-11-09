@@ -1,0 +1,50 @@
+use std::{error::Error, fmt::Display};
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum YpbankError {
+    FileNotFound { file: String },
+    CsvParseError(String),
+    CsvUnexpectedValue(String),
+    TextFieldNotFound(String),
+    TextUnexpectedFieldValue(String, String),
+    TextUnableToParse(String),
+    TextDuplicateField(String),
+    BinaryUnexpectedValue,
+    BinaryReadError,
+    WriteError,
+}
+
+impl Display for YpbankError {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            YpbankError::FileNotFound { file } => write!(f, "Unable to open '{file}'"),
+            YpbankError::CsvParseError(error) => write!(f, "Parsing CSV error: {error}"),
+            YpbankError::CsvUnexpectedValue(value) => write!(f, "Csv unexpected value: {value}"),
+            YpbankError::TextFieldNotFound(field) => write!(f, "Text field not found: {field}"),
+            YpbankError::TextUnexpectedFieldValue(field, value) => {
+                write!(f, "Text field {field} unexpected value: {value}")
+            }
+            YpbankError::TextUnableToParse(line) => write!(f, "Unable to parse txt line: {line}"),
+            YpbankError::TextDuplicateField(field) => {
+                write!(f, "Text duplicate field found: {field}")
+            }
+            YpbankError::BinaryUnexpectedValue => {
+                write!(f, "Unable to read binary format, unexpected value")
+            }
+            YpbankError::BinaryReadError => {
+                write!(f, "Unable to read binary format, read error")
+            }
+            YpbankError::WriteError => {
+                write!(f, "Unable to write output")
+            }
+        }
+    }
+}
+
+impl Error for YpbankError {}
+
+impl From<csv::Error> for YpbankError {
+    fn from(value: csv::Error) -> Self {
+        YpbankError::CsvParseError(value.to_string())
+    }
+}

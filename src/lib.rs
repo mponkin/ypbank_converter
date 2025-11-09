@@ -1,0 +1,105 @@
+use std::fmt::Display;
+
+use clap::ValueEnum;
+
+use crate::{
+    bin_format::{BinRecordReader, BinRecordWriter},
+    csv_format::{CsvRecordReader, CsvRecordWriter},
+    error::YpbankError,
+    txt_format::{TextRecordReader, TextRecordWriter},
+};
+mod bin_format;
+mod csv_format;
+pub mod error;
+mod txt_format;
+
+#[derive(Debug, Clone, ValueEnum)]
+pub enum FileFormat {
+    Binary,
+    Csv,
+    Text,
+}
+
+impl FileFormat {
+    pub fn get_format_reader(&self) -> Box<dyn RecordReader> {
+        match self {
+            FileFormat::Binary => Box::new(BinRecordReader::new()),
+            FileFormat::Csv => Box::new(CsvRecordReader::new()),
+            FileFormat::Text => Box::new(TextRecordReader::new()),
+        }
+    }
+
+    pub fn get_format_writer(&self) -> Box<dyn RecordWriter> {
+        match self {
+            FileFormat::Binary => Box::new(BinRecordWriter::new()),
+            FileFormat::Csv => Box::new(CsvRecordWriter::new()),
+            FileFormat::Text => Box::new(TextRecordWriter::new()),
+        }
+    }
+}
+
+impl Display for FileFormat {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                FileFormat::Binary => "Binary",
+                FileFormat::Csv => "Csv",
+                FileFormat::Text => "Text",
+            }
+        )
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub struct Record {
+    pub id: u64,
+    pub record_type: RecordType,
+    pub amount: u64,
+    pub timestamp: u64,
+    pub status: RecordStatus,
+    pub description: String,
+}
+
+impl Record {
+    pub fn new(
+        id: u64,
+        record_type: RecordType,
+        amount: u64,
+        timestamp: u64,
+        status: RecordStatus,
+        description: String,
+    ) -> Self {
+        Self {
+            id,
+            record_type,
+            amount,
+            timestamp,
+            status,
+            description,
+        }
+    }
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RecordType {
+    Deposit { to_user_id: u64 },
+    Withdrawal { from_user_id: u64 },
+    Transfer { from_user_id: u64, to_user_id: u64 },
+}
+
+#[derive(Debug, PartialEq, Eq)]
+pub enum RecordStatus {
+    Success,
+    Failure,
+    Pending,
+}
+
+pub trait RecordReader {
+    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError>;
+}
+
+pub trait RecordWriter {
+    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError>;
+}
