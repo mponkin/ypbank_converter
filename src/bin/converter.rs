@@ -7,7 +7,7 @@ use clap::{Parser, arg};
 use ypbank_converter::{FileFormat, error::YpbankError};
 
 #[derive(Parser, Debug)]
-pub struct ParserCli {
+pub struct ConverterCli {
     #[arg(long, value_name = "FILE")]
     pub input: String,
 
@@ -19,7 +19,7 @@ pub struct ParserCli {
 }
 
 fn main() -> Result<(), YpbankError> {
-    let args = ParserCli::parse();
+    let args = ConverterCli::parse();
 
     let file = File::open(&args.input).map_err(|_| YpbankError::FileNotFound {
         file: args.input.clone(),
