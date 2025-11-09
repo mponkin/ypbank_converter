@@ -4,7 +4,7 @@ use std::{
 };
 
 use clap::{Parser, arg};
-use ypbank_converter::{FileFormat, RecordReader, RecordWriter, error::YpbankError};
+use ypbank_converter::{FileFormat, error::YpbankError};
 
 #[derive(Parser, Debug)]
 pub struct ParserCli {

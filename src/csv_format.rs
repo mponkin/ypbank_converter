@@ -123,7 +123,7 @@ impl From<&Record> for CsvRecord {
                 RecordStatus::Pending => "PENDING",
             }
             .to_string(),
-            description: format!("{}", value.description),
+            description: value.description.to_string(),
         }
     }
 }

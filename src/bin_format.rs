@@ -167,7 +167,7 @@ impl From<&Record> for BinRecord {
 
         Self {
             id: value.id.to_be_bytes(),
-            record_type: record_type,
+            record_type,
             from_user_id: from_user_id.to_be_bytes(),
             to_user_id: to_user_id.to_be_bytes(),
             amount: value.amount.to_be_bytes(),
