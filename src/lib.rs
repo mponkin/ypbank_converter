@@ -13,6 +13,7 @@ mod csv_format;
 pub mod error;
 mod txt_format;
 
+/// Available file formats
 #[derive(Debug, Clone, ValueEnum)]
 pub enum FileFormat {
     Binary,
@@ -21,6 +22,7 @@ pub enum FileFormat {
 }
 
 impl FileFormat {
+    /// Get reader corresponding to format
     pub fn get_format_reader(&self) -> Box<dyn RecordReader> {
         match self {
             FileFormat::Binary => Box::new(BinRecordReader::new()),
@@ -29,6 +31,7 @@ impl FileFormat {
         }
     }
 
+    /// Get writer corresponding to format
     pub fn get_format_writer(&self) -> Box<dyn RecordWriter> {
         match self {
             FileFormat::Binary => Box::new(BinRecordWriter::new()),
@@ -52,14 +55,15 @@ impl Display for FileFormat {
     }
 }
 
+/// Format-independent Record structure
 #[derive(Debug, PartialEq, Eq)]
 pub struct Record {
     pub id: u64,
-    pub record_type: RecordType,
-    pub amount: u64,
-    pub timestamp: u64,
-    pub status: RecordStatus,
-    pub description: String,
+    record_type: RecordType,
+    amount: u64,
+    timestamp: u64,
+    status: RecordStatus,
+    description: String,
 }
 
 impl Record {
@@ -97,9 +101,11 @@ pub enum RecordStatus {
 }
 
 pub trait RecordReader {
+    /// Read all records from given reader
     fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError>;
 }
 
 pub trait RecordWriter {
+    /// Write all records to privided writer
     fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError>;
 }
