@@ -72,11 +72,14 @@ impl RecordWriter for TextRecordWriter {
             let text_record = TextRecord::from(record);
 
             for (k, v) in text_record.fields {
-                if let Err(e) = w.write(format!("{k}: {v}\n").as_bytes()) {
+                if let Err(e) = writeln!(w, "{k}: {v}") {
                     return Err(YpbankError::WriteError(e.to_string()));
                 }
             }
-            if let Err(e) = w.write("\n".as_bytes()) {
+            if let Err(e) = writeln!(w, "") {
+                return Err(YpbankError::WriteError(e.to_string()));
+            }
+            if let Err(e) = w.flush() {
                 return Err(YpbankError::WriteError(e.to_string()));
             }
         }
