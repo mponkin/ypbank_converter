@@ -4,8 +4,8 @@ use std::{error::Error, fmt::Display};
 /// List of possible errors
 #[derive(Debug, PartialEq, Eq)]
 pub enum YpbankError {
-    /// Unable to find or open file
-    FileNotFound(String),
+    /// Unable to  open file
+    FileOpenError(String),
     /// Given file format is not known to library
     UnknownFormat(String),
     /// Error parsing CSV file
@@ -37,7 +37,7 @@ pub enum YpbankError {
 impl Display for YpbankError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            YpbankError::FileNotFound(file) => write!(f, "Unable to open '{file}'"),
+            YpbankError::FileOpenError(reason) => write!(f, "Error while opening file: {reason}"),
             YpbankError::UnknownFormat(format) => write!(
                 f,
                 "Unknown file format '{format}', available options are 'binary', 'csv' and 'text'"

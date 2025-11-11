@@ -1,6 +1,7 @@
 use std::{
     fs::File,
     io::{self, BufReader, BufWriter},
+    path::PathBuf,
 };
 
 use clap::{Parser, arg};
@@ -9,7 +10,7 @@ use ypbank_converter::{FileFormat, error::YpbankError};
 #[derive(Parser, Debug)]
 pub struct ConverterCli {
     #[arg(long, value_name = "FILE")]
-    pub input: String,
+    pub input: PathBuf,
 
     #[arg(long, value_name = "FORMAT")]
     pub input_format: FileFormat,
@@ -21,8 +22,7 @@ pub struct ConverterCli {
 fn main() -> Result<(), YpbankError> {
     let args = ConverterCli::parse();
 
-    let file =
-        File::open(&args.input).map_err(|_| YpbankError::FileNotFound(args.input.clone()))?;
+    let file = File::open(&args.input).map_err(|e| YpbankError::FileOpenError(e.to_string()))?;
 
     let mut file_reader = BufReader::new(file);
 
