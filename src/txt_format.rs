@@ -76,7 +76,7 @@ impl RecordWriter for TextRecordWriter {
                     return Err(YpbankError::WriteError(e.to_string()));
                 }
             }
-            if let Err(e) = writeln!(w, "") {
+            if let Err(e) = writeln!(w) {
                 return Err(YpbankError::WriteError(e.to_string()));
             }
             if let Err(e) = w.flush() {
