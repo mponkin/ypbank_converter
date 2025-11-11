@@ -14,7 +14,7 @@ pub enum YpbankError {
     BinaryReadError(String),
     BinaryDescriptionTooLong,
     BinaryRecordTooShort,
-    WriteError,
+    WriteError(String),
 }
 
 impl Display for YpbankError {
@@ -50,8 +50,8 @@ impl Display for YpbankError {
                     "Binary record is too shord and does not contain all required fields"
                 )
             }
-            YpbankError::WriteError => {
-                write!(f, "Unable to write output")
+            YpbankError::WriteError(reason) => {
+                write!(f, "Unable to write output: {reason}")
             }
         }
     }

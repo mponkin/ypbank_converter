@@ -71,12 +71,12 @@ impl RecordWriter for TextRecordWriter {
             let text_record = TextRecord::from(record);
 
             for (k, v) in text_record.fields {
-                if w.write(format!("{k}: {v}\n").as_bytes()).is_err() {
-                    return Err(YpbankError::WriteError);
+                if let Err(e) = w.write(format!("{k}: {v}\n").as_bytes()) {
+                    return Err(YpbankError::WriteError(e.to_string()));
                 }
             }
-            if w.write("\n".as_bytes()).is_err() {
-                return Err(YpbankError::WriteError);
+            if let Err(e) = w.write("\n".as_bytes()) {
+                return Err(YpbankError::WriteError(e.to_string()));
             }
         }
 

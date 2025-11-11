@@ -35,9 +35,13 @@ impl RecordWriter for CsvRecordWriter {
 
         for record in records {
             let csv_record = CsvRecord::from(record);
-            if writer.serialize(csv_record).is_err() {
-                return Err(YpbankError::WriteError);
+            if let Err(e) = writer.serialize(csv_record) {
+                return Err(YpbankError::WriteError(e.to_string()));
             }
+        }
+
+        if let Err(e) = writer.flush() {
+            return Err(YpbankError::WriteError(e.to_string()));
         }
 
         Ok(())

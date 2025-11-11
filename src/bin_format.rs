@@ -133,10 +133,11 @@ impl RecordWriter for BinRecordWriter {
             buffer.extend_from_slice(&bin_record.description);
 
             w.write_all(BinRecord::HEADER)
-                .map_err(|_| YpbankError::WriteError)?;
+                .map_err(|e| YpbankError::WriteError(e.to_string()))?;
             w.write_all(&(buffer.len() as u32).to_be_bytes())
-                .map_err(|_| YpbankError::WriteError)?;
-            w.write_all(&buffer).map_err(|_| YpbankError::WriteError)?;
+                .map_err(|e| YpbankError::WriteError(e.to_string()))?;
+            w.write_all(&buffer)
+                .map_err(|e| YpbankError::WriteError(e.to_string()))?;
         }
 
         Ok(())
