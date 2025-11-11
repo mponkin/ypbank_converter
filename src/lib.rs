@@ -1,6 +1,4 @@
-use std::fmt::Display;
-
-use clap::ValueEnum;
+use std::{fmt::Display, str::FromStr};
 
 use crate::{
     bin_format::{BinRecordReader, BinRecordWriter},
@@ -14,7 +12,7 @@ pub mod error;
 mod txt_format;
 
 /// Available file formats
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone)]
 pub enum FileFormat {
     Binary,
     Csv,
@@ -52,6 +50,19 @@ impl Display for FileFormat {
                 FileFormat::Text => "Text",
             }
         )
+    }
+}
+
+impl FromStr for FileFormat {
+    type Err = YpbankError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "binary" => Ok(FileFormat::Binary),
+            "csv" => Ok(FileFormat::Csv),
+            "text" => Ok(FileFormat::Text),
+            _ => Err(YpbankError::UnknownFormat(s.to_string())),
+        }
     }
 }
 
