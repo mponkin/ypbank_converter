@@ -4,10 +4,10 @@ use std::io::{BufRead, BufReader};
 use crate::error::YpbankError;
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter};
 
-pub struct TextRecordReader;
+pub(crate) struct TextRecordReader;
 
 impl TextRecordReader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
@@ -58,10 +58,10 @@ impl RecordReader for TextRecordReader {
     }
 }
 
-pub struct TextRecordWriter;
+pub(crate) struct TextRecordWriter;
 
 impl TextRecordWriter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }

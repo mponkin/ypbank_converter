@@ -1,3 +1,4 @@
+#![deny(unreachable_pub)]
 use std::{fmt::Display, str::FromStr};
 
 use crate::{

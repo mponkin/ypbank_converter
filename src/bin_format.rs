@@ -2,10 +2,10 @@ use std::io;
 
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 
-pub struct BinRecordReader;
+pub(crate) struct BinRecordReader;
 
 impl BinRecordReader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 
@@ -107,10 +107,10 @@ impl RecordReader for BinRecordReader {
     }
 }
 
-pub struct BinRecordWriter;
+pub(crate) struct BinRecordWriter;
 
 impl BinRecordWriter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }

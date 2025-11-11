@@ -1,10 +1,10 @@
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 use serde::{Deserialize, Serialize};
 
-pub struct CsvRecordReader;
+pub(crate) struct CsvRecordReader;
 
 impl CsvRecordReader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
@@ -21,10 +21,10 @@ impl RecordReader for CsvRecordReader {
     }
 }
 
-pub struct CsvRecordWriter;
+pub(crate) struct CsvRecordWriter;
 
 impl CsvRecordWriter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
