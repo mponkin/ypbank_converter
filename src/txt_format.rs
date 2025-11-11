@@ -20,31 +20,32 @@ impl RecordReader for TextRecordReader {
         let mut map = HashMap::new();
         let mut records = vec![];
         for line in reader.lines() {
-            if let Ok(line) = line {
-                if line.is_empty() {
-                    let fields = map.clone();
-                    map.clear();
-                    let text_record = TextRecord { fields };
-                    records.push(text_record.try_into()?);
-                    continue;
-                }
-                if line.starts_with("#") {
-                    continue;
-                }
-                match line.split_once(DELIMITER) {
-                    Some((key, value)) => {
-                        if map.contains_key(key) {
-                            return Err(YpbankError::TextDuplicateField(key.to_string()));
-                        }
+            match line {
+                Ok(line) => {
+                    if line.is_empty() {
+                        let fields = map.clone();
+                        map.clear();
+                        let text_record = TextRecord { fields };
+                        records.push(text_record.try_into()?);
+                        continue;
+                    }
+                    if line.starts_with("#") {
+                        continue;
+                    }
+                    match line.split_once(DELIMITER) {
+                        Some((key, value)) => {
+                            if map.contains_key(key) {
+                                return Err(YpbankError::TextDuplicateField(key.to_string()));
+                            }
 
-                        map.insert(key.to_string(), value.to_string());
-                    }
-                    None => {
-                        return Err(YpbankError::TextUnableToParse(line));
+                            map.insert(key.to_string(), value.to_string());
+                        }
+                        None => {
+                            return Err(YpbankError::TextUnableToParse(line));
+                        }
                     }
                 }
-            } else {
-                break;
+                Err(e) => return Err(YpbankError::TextReadError(e.to_string())),
             }
         }
 

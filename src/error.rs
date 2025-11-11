@@ -10,6 +10,7 @@ pub enum YpbankError {
     TextUnexpectedFieldValue(String, String),
     TextUnableToParse(String),
     TextDuplicateField(String),
+    TextReadError(String),
     BinaryUnexpectedValue,
     BinaryReadError(String),
     BinaryDescriptionTooLong,
@@ -34,6 +35,9 @@ impl Display for YpbankError {
             YpbankError::TextUnableToParse(line) => write!(f, "Unable to parse txt line: {line}"),
             YpbankError::TextDuplicateField(field) => {
                 write!(f, "Text duplicate field found: {field}")
+            }
+            YpbankError::TextReadError(reason) => {
+                write!(f, "Error while reading text file: {reason}")
             }
             YpbankError::BinaryUnexpectedValue => {
                 write!(f, "Unable to read binary format, unexpected value")
