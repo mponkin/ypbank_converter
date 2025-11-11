@@ -1,4 +1,4 @@
-use std::io;
+use std::io::{self, Read, Write};
 
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 
@@ -49,7 +49,7 @@ macro_rules! read_n_bytes {
 }
 
 impl RecordReader for BinRecordReader {
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError> {
         let mut bin_records: Vec<BinRecord> = vec![];
         loop {
             if !self.has_next_record(r)? {
@@ -116,7 +116,7 @@ impl BinRecordWriter {
 }
 
 impl RecordWriter for BinRecordWriter {
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError> {
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError> {
         for record in records {
             let bin_record = BinRecord::from(record);
 

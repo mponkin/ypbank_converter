@@ -5,7 +5,7 @@ use std::{
 };
 
 use clap::Parser;
-use ypbank_converter::{FileFormat, Record, error::YpbankError};
+use ypbank_converter::{FileFormat, Record, error::YpbankError, read_all_records};
 
 #[derive(Parser, Debug)]
 pub struct ParserCli {
@@ -29,11 +29,8 @@ fn main() -> Result<(), YpbankError> {
 
     let file2 = File::open(&args.file2).map_err(|e| YpbankError::FileOpenError(e.to_string()))?;
 
-    let reader1 = args.format1.get_format_reader();
-    let reader2 = args.format2.get_format_reader();
-
-    let records1 = records_to_map(reader1.read_all(&mut BufReader::new(file1))?);
-    let records2 = records_to_map(reader2.read_all(&mut BufReader::new(file2))?);
+    let records1 = records_to_map(read_all_records(&mut BufReader::new(file1), args.format1)?);
+    let records2 = records_to_map(read_all_records(&mut BufReader::new(file2), args.format2)?);
 
     let keys1 = records1.keys().collect::<HashSet<_>>();
     let keys2 = records2.keys().collect::<HashSet<_>>();

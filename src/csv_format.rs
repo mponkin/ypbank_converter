@@ -1,3 +1,5 @@
+use std::io::{Read, Write};
+
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 use serde::{Deserialize, Serialize};
 
@@ -10,7 +12,7 @@ impl CsvRecordReader {
 }
 
 impl RecordReader for CsvRecordReader {
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError> {
         let mut rdr = csv::Reader::from_reader(r);
         rdr.deserialize::<CsvRecord>()
             .map(|res| {
@@ -30,7 +32,7 @@ impl CsvRecordWriter {
 }
 
 impl RecordWriter for CsvRecordWriter {
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError> {
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError> {
         let mut writer = csv::Writer::from_writer(w);
 
         for record in records {

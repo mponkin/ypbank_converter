@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::error::YpbankError;
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter};
@@ -13,7 +13,7 @@ impl TextRecordReader {
 }
 
 impl RecordReader for TextRecordReader {
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError> {
         let reader = BufReader::new(r);
 
         const DELIMITER: &str = ": ";
@@ -67,7 +67,7 @@ impl TextRecordWriter {
 }
 
 impl RecordWriter for TextRecordWriter {
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError> {
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError> {
         for record in records {
             let text_record = TextRecord::from(record);
 

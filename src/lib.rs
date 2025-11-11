@@ -3,7 +3,11 @@
 #![deny(unreachable_pub)]
 #![warn(missing_docs)]
 
-use std::{fmt::Display, str::FromStr};
+use std::{
+    fmt::Display,
+    io::{Read, Write},
+    str::FromStr,
+};
 
 use crate::{
     bin_format::{BinRecordReader, BinRecordWriter},
@@ -28,26 +32,6 @@ pub enum FileFormat {
 
     /// Human-readable text format
     Text,
-}
-
-impl FileFormat {
-    /// Get reader corresponding to format
-    pub fn get_format_reader(&self) -> Box<dyn RecordReader> {
-        match self {
-            FileFormat::Binary => Box::new(BinRecordReader::new()),
-            FileFormat::Csv => Box::new(CsvRecordReader::new()),
-            FileFormat::Text => Box::new(TextRecordReader::new()),
-        }
-    }
-
-    /// Get writer corresponding to format
-    pub fn get_format_writer(&self) -> Box<dyn RecordWriter> {
-        match self {
-            FileFormat::Binary => Box::new(BinRecordWriter::new()),
-            FileFormat::Csv => Box::new(CsvRecordWriter::new()),
-            FileFormat::Text => Box::new(TextRecordWriter::new()),
-        }
-    }
 }
 
 impl Display for FileFormat {
@@ -144,13 +128,38 @@ pub enum RecordStatus {
 }
 
 /// Trait for reading some format to unified records list
-pub trait RecordReader {
+trait RecordReader {
     /// Read all records from given reader
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError>;
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError>;
 }
 
 /// Trait for writing some format from unified records list
-pub trait RecordWriter {
+trait RecordWriter {
     /// Write all records to privided writer
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError>;
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError>;
+}
+
+/// Read all records in given format from reader
+pub fn read_all_records<R: Read>(
+    reader: &mut R,
+    input_format: FileFormat,
+) -> Result<Vec<Record>, YpbankError> {
+    match input_format {
+        FileFormat::Binary => BinRecordReader::new().read_all(reader),
+        FileFormat::Csv => CsvRecordReader::new().read_all(reader),
+        FileFormat::Text => TextRecordReader::new().read_all(reader),
+    }
+}
+
+/// Write all records in given format to writer
+pub fn write_all_records<W: Write>(
+    writer: &mut W,
+    output_format: FileFormat,
+    records: &[Record],
+) -> Result<(), YpbankError> {
+    match output_format {
+        FileFormat::Binary => BinRecordWriter::new().write_all(writer, records),
+        FileFormat::Csv => CsvRecordWriter::new().write_all(writer, records),
+        FileFormat::Text => TextRecordWriter::new().write_all(writer, records),
+    }
 }
