@@ -37,7 +37,6 @@ impl BinRecordReader {
     }
 }
 
-#[macro_export]
 macro_rules! read_n_bytes {
     ($reader:expr, $count:expr) => {{
         let mut buffer = [0u8; $count];
