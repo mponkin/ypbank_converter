@@ -1,4 +1,8 @@
+//! Library for reading, parsing and writing YPBank transaction records
+
 #![deny(unreachable_pub)]
+#![warn(missing_docs)]
+
 use std::{fmt::Display, str::FromStr};
 
 use crate::{
@@ -7,6 +11,7 @@ use crate::{
     error::YpbankError,
     txt_format::{TextRecordReader, TextRecordWriter},
 };
+
 mod bin_format;
 mod csv_format;
 pub mod error;
@@ -15,8 +20,13 @@ mod txt_format;
 /// Available file formats
 #[derive(Debug, Clone)]
 pub enum FileFormat {
+    /// Binary format for effective storage usage
     Binary,
+
+    /// CSV table format
     Csv,
+
+    /// Human-readable text format
     Text,
 }
 
@@ -70,6 +80,7 @@ impl FromStr for FileFormat {
 /// Format-independent Record structure
 #[derive(Debug, PartialEq, Eq)]
 pub struct Record {
+    /// Id of record
     pub id: u64,
     record_type: RecordType,
     amount: u64,
@@ -79,6 +90,7 @@ pub struct Record {
 }
 
 impl Record {
+    /// Create new record
     pub fn new(
         id: u64,
         record_type: RecordType,
@@ -98,25 +110,46 @@ impl Record {
     }
 }
 
+/// Supported record types
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecordType {
-    Deposit { to_user_id: u64 },
-    Withdrawal { from_user_id: u64 },
-    Transfer { from_user_id: u64, to_user_id: u64 },
+    /// Deposit money to some account
+    Deposit {
+        /// Id of user account for money deposit
+        to_user_id: u64,
+    },
+    /// Withdraw money from some account
+    Withdrawal {
+        /// Id of user account for money withdraw
+        from_user_id: u64,
+    },
+    /// Transfer money between users
+    Transfer {
+        /// Id of user account for money withdraw
+        from_user_id: u64,
+        /// Id of user account for money deposit
+        to_user_id: u64,
+    },
 }
 
+/// Status of record
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecordStatus {
+    /// Successfull operation
     Success,
+    /// Failed operation
     Failure,
+    /// Pending operation
     Pending,
 }
 
+/// Trait for reading some format to unified records list
 pub trait RecordReader {
     /// Read all records from given reader
     fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError>;
 }
 
+/// Trait for writing some format from unified records list
 pub trait RecordWriter {
     /// Write all records to privided writer
     fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError>;

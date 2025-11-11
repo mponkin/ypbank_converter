@@ -25,13 +25,11 @@ pub struct ParserCli {
 fn main() -> Result<(), YpbankError> {
     let args = ParserCli::parse();
 
-    let file1 = File::open(&args.file1).map_err(|_| YpbankError::FileNotFound {
-        file: args.file1.clone(),
-    })?;
+    let file1 =
+        File::open(&args.file1).map_err(|_| YpbankError::FileNotFound(args.file1.clone()))?;
 
-    let file2 = File::open(&args.file2).map_err(|_| YpbankError::FileNotFound {
-        file: args.file2.clone(),
-    })?;
+    let file2 =
+        File::open(&args.file2).map_err(|_| YpbankError::FileNotFound(args.file2.clone()))?;
 
     let reader1 = args.format1.get_format_reader();
     let reader2 = args.format2.get_format_reader();

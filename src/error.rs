@@ -1,27 +1,43 @@
+//! Module containig list of possible errors
 use std::{error::Error, fmt::Display};
 
+/// List of possible errors
 #[derive(Debug, PartialEq, Eq)]
 pub enum YpbankError {
-    FileNotFound { file: String },
+    /// Unable to find or open file
+    FileNotFound(String),
+    /// Given file format is not known to library
     UnknownFormat(String),
+    /// Error parsing CSV file
     CsvParseError(String),
+    /// Unexpected value in CSV file
     CsvUnexpectedValue(String),
+    /// Text field not found in text record
     TextFieldNotFound(String),
+    /// Text field has incorrect value
     TextUnexpectedFieldValue(String, String),
+    /// Unable to parse text field value
     TextUnableToParse(String),
+    /// Text record contains duplicate entries
     TextDuplicateField(String),
+    /// Unbale to read text data
     TextReadError(String),
+    /// Got unexpected value while reading binary data
     BinaryUnexpectedValue,
+    /// Read error while reading binary data
     BinaryReadError(String),
+    /// Description of binary record is too long and does not fit into record data size
     BinaryDescriptionTooLong,
+    /// Binary record does not contain enough data
     BinaryRecordTooShort,
+    /// Error writing file
     WriteError(String),
 }
 
 impl Display for YpbankError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            YpbankError::FileNotFound { file } => write!(f, "Unable to open '{file}'"),
+            YpbankError::FileNotFound(file) => write!(f, "Unable to open '{file}'"),
             YpbankError::UnknownFormat(format) => write!(
                 f,
                 "Unknown file format '{format}', available options are 'binary', 'csv' and 'text'"
