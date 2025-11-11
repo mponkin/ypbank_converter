@@ -1,6 +1,6 @@
 use std::{
     fs::File,
-    io::{self, BufReader, BufWriter},
+    io::{self, BufReader, BufWriter, Write},
     path::PathBuf,
 };
 
@@ -26,10 +26,13 @@ fn main() -> Result<(), YpbankError> {
 
     let mut file_reader = BufReader::new(file);
 
-    let stdout_handle = io::stdout();
+    let stdout_handle = io::stdout().lock();
     let mut stdout_writer = BufWriter::new(stdout_handle);
 
     let records = read_all_records(&mut file_reader, args.input_format)?;
 
-    write_all_records(&mut stdout_writer, args.output_format, &records)
+    write_all_records(&mut stdout_writer, args.output_format, &records)?;
+    stdout_writer
+        .flush()
+        .map_err(|e| YpbankError::WriteError(e.to_string()))
 }
