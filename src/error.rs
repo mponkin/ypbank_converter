@@ -11,7 +11,7 @@ pub enum YpbankError {
     TextUnableToParse(String),
     TextDuplicateField(String),
     BinaryUnexpectedValue,
-    BinaryReadError,
+    BinaryReadError(String),
     WriteError,
 }
 
@@ -36,8 +36,8 @@ impl Display for YpbankError {
             YpbankError::BinaryUnexpectedValue => {
                 write!(f, "Unable to read binary format, unexpected value")
             }
-            YpbankError::BinaryReadError => {
-                write!(f, "Unable to read binary format, read error")
+            YpbankError::BinaryReadError(err) => {
+                write!(f, "Unable to read binary format, read error: {err}")
             }
             YpbankError::WriteError => {
                 write!(f, "Unable to write output")

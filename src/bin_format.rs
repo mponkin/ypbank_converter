@@ -1,3 +1,5 @@
+use std::io;
+
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 
 pub struct BinRecordReader;
@@ -5,6 +7,33 @@ pub struct BinRecordReader;
 impl BinRecordReader {
     pub fn new() -> Self {
         Self
+    }
+
+    fn has_next_record(&self, r: &mut dyn std::io::Read) -> Result<bool, YpbankError> {
+        let mut buffer = vec![0u8; BinRecord::HEADER.len()];
+        let mut bytes_read = 0;
+
+        while bytes_read < buffer.len() {
+            let bytes_to_fill = &mut buffer[bytes_read..];
+
+            match r.read(bytes_to_fill) {
+                Ok(0) if bytes_read > 0 => {
+                    return Err(YpbankError::BinaryUnexpectedValue);
+                }
+                Ok(0) => return Ok(false),
+                Ok(n) => {
+                    bytes_read += n;
+                }
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(YpbankError::BinaryReadError(e.to_string())),
+            }
+        }
+
+        if buffer == BinRecord::HEADER {
+            Ok(true)
+        } else {
+            Err(YpbankError::BinaryUnexpectedValue)
+        }
     }
 }
 
@@ -15,7 +44,7 @@ macro_rules! read_n_bytes {
 
         match $reader.read_exact(&mut buffer) {
             Ok(_) => Ok(buffer),
-            Err(_) => Err($crate::YpbankError::BinaryReadError),
+            Err(e) => Err($crate::YpbankError::BinaryReadError(e.to_string())),
         }
     }};
 }
@@ -24,12 +53,8 @@ impl RecordReader for BinRecordReader {
     fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
         let mut bin_records: Vec<BinRecord> = vec![];
         loop {
-            let header_res = read_n_bytes!(r, 4);
-
-            match header_res {
-                Ok(header) if &header == BinRecord::HEADER => (),
-                Ok(_) => return Err(YpbankError::BinaryUnexpectedValue),
-                Err(_) => break,
+            if !self.has_next_record(r)? {
+                break;
             }
 
             let _record_length = read_n_bytes!(r, 4)?;
@@ -43,8 +68,8 @@ impl RecordReader for BinRecordReader {
             let status = read_n_bytes!(r, 1)?[0];
             let description_length = u32::from_be_bytes(read_n_bytes!(r, 4)?);
             let mut description = vec![0u8; description_length as usize];
-            if r.read_exact(&mut description).is_err() {
-                return Err(YpbankError::BinaryReadError);
+            if let Err(e) = r.read_exact(&mut description) {
+                return Err(YpbankError::BinaryReadError(e.to_string()));
             }
 
             bin_records.push(BinRecord {
