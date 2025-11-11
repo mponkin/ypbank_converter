@@ -56,7 +56,13 @@ impl RecordReader for BinRecordReader {
                 break;
             }
 
-            let _record_length = read_n_bytes!(r, 4)?;
+            let mut record_bytes_left = u32::from_be_bytes(read_n_bytes!(r, 4)?);
+
+            let fixed_part_length = 8 + 1 + 8 + 8 + 8 + 8 + 1 + 4;
+
+            if record_bytes_left < fixed_part_length {
+                return Err(YpbankError::BinaryRecordTooShort);
+            }
 
             let id = read_n_bytes!(r, 8)?;
             let record_type = read_n_bytes!(r, 1)?[0];
@@ -66,9 +72,23 @@ impl RecordReader for BinRecordReader {
             let timestamp = read_n_bytes!(r, 8)?;
             let status = read_n_bytes!(r, 1)?[0];
             let description_length = u32::from_be_bytes(read_n_bytes!(r, 4)?);
+
+            record_bytes_left -= fixed_part_length;
+            if record_bytes_left < description_length {
+                return Err(YpbankError::BinaryDescriptionTooLong);
+            }
+
             let mut description = vec![0u8; description_length as usize];
             if let Err(e) = r.read_exact(&mut description) {
                 return Err(YpbankError::BinaryReadError(e.to_string()));
+            }
+
+            record_bytes_left -= description_length;
+            if record_bytes_left > 0 {
+                let mut skip_bytes = vec![0u8; record_bytes_left as usize];
+                if let Err(e) = r.read_exact(&mut skip_bytes) {
+                    return Err(YpbankError::BinaryReadError(e.to_string()));
+                }
             }
 
             bin_records.push(BinRecord {

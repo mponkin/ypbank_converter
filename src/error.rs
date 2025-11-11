@@ -12,6 +12,8 @@ pub enum YpbankError {
     TextDuplicateField(String),
     BinaryUnexpectedValue,
     BinaryReadError(String),
+    BinaryDescriptionTooLong,
+    BinaryRecordTooShort,
     WriteError,
 }
 
@@ -38,6 +40,15 @@ impl Display for YpbankError {
             }
             YpbankError::BinaryReadError(err) => {
                 write!(f, "Unable to read binary format, read error: {err}")
+            }
+            YpbankError::BinaryDescriptionTooLong => {
+                write!(f, "Binary description length exceeds record length")
+            }
+            YpbankError::BinaryRecordTooShort => {
+                write!(
+                    f,
+                    "Binary record is too shord and does not contain all required fields"
+                )
             }
             YpbankError::WriteError => {
                 write!(f, "Unable to write output")
