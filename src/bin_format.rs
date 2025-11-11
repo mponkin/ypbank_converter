@@ -43,7 +43,7 @@ macro_rules! read_n_bytes {
 
         match $reader.read_exact(&mut buffer) {
             Ok(_) => Ok(buffer),
-            Err(e) => Err($crate::YpbankError::BinaryReadError(e.to_string())),
+            Err(e) => Err($crate::error::YpbankError::BinaryReadError(e.to_string())),
         }
     }};
 }
