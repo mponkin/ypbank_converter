@@ -1,50 +1,51 @@
 use std::collections::HashMap;
-use std::io::{BufRead, BufReader};
+use std::io::{BufRead, BufReader, Read, Write};
 
 use crate::error::YpbankError;
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter};
 
-pub struct TextRecordReader;
+pub(crate) struct TextRecordReader;
 
 impl TextRecordReader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
 
 impl RecordReader for TextRecordReader {
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError> {
         let reader = BufReader::new(r);
 
         const DELIMITER: &str = ": ";
         let mut map = HashMap::new();
         let mut records = vec![];
         for line in reader.lines() {
-            if let Ok(line) = line {
-                if line.is_empty() {
-                    let fields = map.clone();
-                    map.clear();
-                    let text_record = TextRecord { fields };
-                    records.push(text_record.try_into()?);
-                    continue;
-                }
-                if line.starts_with("#") {
-                    continue;
-                }
-                match line.split_once(DELIMITER) {
-                    Some((key, value)) => {
-                        if map.contains_key(key) {
-                            return Err(YpbankError::TextDuplicateField(key.to_string()));
-                        }
+            match line {
+                Ok(line) => {
+                    if line.is_empty() {
+                        let fields = map.clone();
+                        map.clear();
+                        let text_record = TextRecord { fields };
+                        records.push(text_record.try_into()?);
+                        continue;
+                    }
+                    if line.starts_with("#") {
+                        continue;
+                    }
+                    match line.split_once(DELIMITER) {
+                        Some((key, value)) => {
+                            if map.contains_key(key) {
+                                return Err(YpbankError::TextDuplicateField(key.to_string()));
+                            }
 
-                        map.insert(key.to_string(), value.to_string());
-                    }
-                    None => {
-                        return Err(YpbankError::TextUnableToParse(line));
+                            map.insert(key.to_string(), value.to_string());
+                        }
+                        None => {
+                            return Err(YpbankError::TextUnableToParse(line));
+                        }
                     }
                 }
-            } else {
-                break;
+                Err(e) => return Err(YpbankError::TextReadError(e.to_string())),
             }
         }
 
@@ -57,26 +58,29 @@ impl RecordReader for TextRecordReader {
     }
 }
 
-pub struct TextRecordWriter;
+pub(crate) struct TextRecordWriter;
 
 impl TextRecordWriter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
 
 impl RecordWriter for TextRecordWriter {
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError> {
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError> {
         for record in records {
             let text_record = TextRecord::from(record);
 
             for (k, v) in text_record.fields {
-                if w.write(format!("{k}: {v}\n").as_bytes()).is_err() {
-                    return Err(YpbankError::WriteError);
+                if let Err(e) = writeln!(w, "{k}: {v}") {
+                    return Err(YpbankError::WriteError(e.to_string()));
                 }
             }
-            if w.write("\n".as_bytes()).is_err() {
-                return Err(YpbankError::WriteError);
+            if let Err(e) = writeln!(w) {
+                return Err(YpbankError::WriteError(e.to_string()));
+            }
+            if let Err(e) = w.flush() {
+                return Err(YpbankError::WriteError(e.to_string()));
             }
         }
 

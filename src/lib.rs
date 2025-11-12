@@ -1,6 +1,13 @@
-use std::fmt::Display;
+//! Library for reading, parsing and writing YPBank transaction records
 
-use clap::ValueEnum;
+#![deny(unreachable_pub)]
+#![warn(missing_docs)]
+
+use std::{
+    fmt::Display,
+    io::{Read, Write},
+    str::FromStr,
+};
 
 use crate::{
     bin_format::{BinRecordReader, BinRecordWriter},
@@ -8,37 +15,23 @@ use crate::{
     error::YpbankError,
     txt_format::{TextRecordReader, TextRecordWriter},
 };
+
 mod bin_format;
 mod csv_format;
 pub mod error;
 mod txt_format;
 
 /// Available file formats
-#[derive(Debug, Clone, ValueEnum)]
+#[derive(Debug, Clone)]
 pub enum FileFormat {
+    /// Binary format for effective storage usage
     Binary,
+
+    /// CSV table format
     Csv,
+
+    /// Human-readable text format
     Text,
-}
-
-impl FileFormat {
-    /// Get reader corresponding to format
-    pub fn get_format_reader(&self) -> Box<dyn RecordReader> {
-        match self {
-            FileFormat::Binary => Box::new(BinRecordReader::new()),
-            FileFormat::Csv => Box::new(CsvRecordReader::new()),
-            FileFormat::Text => Box::new(TextRecordReader::new()),
-        }
-    }
-
-    /// Get writer corresponding to format
-    pub fn get_format_writer(&self) -> Box<dyn RecordWriter> {
-        match self {
-            FileFormat::Binary => Box::new(BinRecordWriter::new()),
-            FileFormat::Csv => Box::new(CsvRecordWriter::new()),
-            FileFormat::Text => Box::new(TextRecordWriter::new()),
-        }
-    }
 }
 
 impl Display for FileFormat {
@@ -55,9 +48,23 @@ impl Display for FileFormat {
     }
 }
 
+impl FromStr for FileFormat {
+    type Err = YpbankError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        match s.to_lowercase().as_str() {
+            "binary" => Ok(FileFormat::Binary),
+            "csv" => Ok(FileFormat::Csv),
+            "text" => Ok(FileFormat::Text),
+            _ => Err(YpbankError::UnknownFormat(s.to_string())),
+        }
+    }
+}
+
 /// Format-independent Record structure
 #[derive(Debug, PartialEq, Eq)]
 pub struct Record {
+    /// Id of record
     pub id: u64,
     record_type: RecordType,
     amount: u64,
@@ -67,6 +74,7 @@ pub struct Record {
 }
 
 impl Record {
+    /// Create new record
     pub fn new(
         id: u64,
         record_type: RecordType,
@@ -86,26 +94,72 @@ impl Record {
     }
 }
 
+/// Supported record types
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecordType {
-    Deposit { to_user_id: u64 },
-    Withdrawal { from_user_id: u64 },
-    Transfer { from_user_id: u64, to_user_id: u64 },
+    /// Deposit money to some account
+    Deposit {
+        /// Id of user account for money deposit
+        to_user_id: u64,
+    },
+    /// Withdraw money from some account
+    Withdrawal {
+        /// Id of user account for money withdraw
+        from_user_id: u64,
+    },
+    /// Transfer money between users
+    Transfer {
+        /// Id of user account for money withdraw
+        from_user_id: u64,
+        /// Id of user account for money deposit
+        to_user_id: u64,
+    },
 }
 
+/// Status of record
 #[derive(Debug, PartialEq, Eq)]
 pub enum RecordStatus {
+    /// Successfull operation
     Success,
+    /// Failed operation
     Failure,
+    /// Pending operation
     Pending,
 }
 
-pub trait RecordReader {
+/// Trait for reading some format to unified records list
+trait RecordReader {
     /// Read all records from given reader
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError>;
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError>;
 }
 
-pub trait RecordWriter {
+/// Trait for writing some format from unified records list
+trait RecordWriter {
     /// Write all records to privided writer
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError>;
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError>;
+}
+
+/// Read all records in given format from reader
+pub fn read_all_records<R: Read>(
+    reader: &mut R,
+    input_format: FileFormat,
+) -> Result<Vec<Record>, YpbankError> {
+    match input_format {
+        FileFormat::Binary => BinRecordReader::new().read_all(reader),
+        FileFormat::Csv => CsvRecordReader::new().read_all(reader),
+        FileFormat::Text => TextRecordReader::new().read_all(reader),
+    }
+}
+
+/// Write all records in given format to writer
+pub fn write_all_records<W: Write>(
+    writer: &mut W,
+    output_format: FileFormat,
+    records: &[Record],
+) -> Result<(), YpbankError> {
+    match output_format {
+        FileFormat::Binary => BinRecordWriter::new().write_all(writer, records),
+        FileFormat::Csv => CsvRecordWriter::new().write_all(writer, records),
+        FileFormat::Text => TextRecordWriter::new().write_all(writer, records),
+    }
 }

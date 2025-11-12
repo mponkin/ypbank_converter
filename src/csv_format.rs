@@ -1,16 +1,18 @@
+use std::io::{Read, Write};
+
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 use serde::{Deserialize, Serialize};
 
-pub struct CsvRecordReader;
+pub(crate) struct CsvRecordReader;
 
 impl CsvRecordReader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
 
 impl RecordReader for CsvRecordReader {
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError> {
         let mut rdr = csv::Reader::from_reader(r);
         rdr.deserialize::<CsvRecord>()
             .map(|res| {
@@ -21,23 +23,27 @@ impl RecordReader for CsvRecordReader {
     }
 }
 
-pub struct CsvRecordWriter;
+pub(crate) struct CsvRecordWriter;
 
 impl CsvRecordWriter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
 
 impl RecordWriter for CsvRecordWriter {
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError> {
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError> {
         let mut writer = csv::Writer::from_writer(w);
 
         for record in records {
             let csv_record = CsvRecord::from(record);
-            if writer.serialize(csv_record).is_err() {
-                return Err(YpbankError::WriteError);
+            if let Err(e) = writer.serialize(csv_record) {
+                return Err(YpbankError::WriteError(e.to_string()));
             }
+        }
+
+        if let Err(e) = writer.flush() {
+            return Err(YpbankError::WriteError(e.to_string()));
         }
 
         Ok(())

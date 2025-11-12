@@ -1,38 +1,68 @@
+use std::io::{self, Read, Write};
+
 use crate::{Record, RecordReader, RecordStatus, RecordType, RecordWriter, error::YpbankError};
 
-pub struct BinRecordReader;
+pub(crate) struct BinRecordReader;
 
 impl BinRecordReader {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
+    }
+
+    fn has_next_record(&self, r: &mut dyn std::io::Read) -> Result<bool, YpbankError> {
+        let mut buffer = vec![0u8; BinRecord::HEADER.len()];
+        let mut bytes_read = 0;
+
+        while bytes_read < buffer.len() {
+            let bytes_to_fill = &mut buffer[bytes_read..];
+
+            match r.read(bytes_to_fill) {
+                Ok(0) if bytes_read > 0 => {
+                    return Err(YpbankError::BinaryUnexpectedValue);
+                }
+                Ok(0) => return Ok(false),
+                Ok(n) => {
+                    bytes_read += n;
+                }
+                Err(e) if e.kind() == io::ErrorKind::Interrupted => continue,
+                Err(e) => return Err(YpbankError::BinaryReadError(e.to_string())),
+            }
+        }
+
+        if buffer == BinRecord::HEADER {
+            Ok(true)
+        } else {
+            Err(YpbankError::BinaryUnexpectedValue)
+        }
     }
 }
 
-#[macro_export]
 macro_rules! read_n_bytes {
     ($reader:expr, $count:expr) => {{
         let mut buffer = [0u8; $count];
 
         match $reader.read_exact(&mut buffer) {
             Ok(_) => Ok(buffer),
-            Err(_) => Err($crate::YpbankError::BinaryReadError),
+            Err(e) => Err($crate::error::YpbankError::BinaryReadError(e.to_string())),
         }
     }};
 }
 
 impl RecordReader for BinRecordReader {
-    fn read_all(&self, r: &mut dyn std::io::Read) -> Result<Vec<Record>, YpbankError> {
+    fn read_all<R: Read>(&self, r: &mut R) -> Result<Vec<Record>, YpbankError> {
         let mut bin_records: Vec<BinRecord> = vec![];
         loop {
-            let header_res = read_n_bytes!(r, 4);
-
-            match header_res {
-                Ok(header) if &header == BinRecord::HEADER => (),
-                Ok(_) => return Err(YpbankError::BinaryUnexpectedValue),
-                Err(_) => break,
+            if !self.has_next_record(r)? {
+                break;
             }
 
-            let _record_length = read_n_bytes!(r, 4)?;
+            let mut record_bytes_left = u32::from_be_bytes(read_n_bytes!(r, 4)?);
+
+            let fixed_part_length = 8 + 1 + 8 + 8 + 8 + 8 + 1 + 4;
+
+            if record_bytes_left < fixed_part_length {
+                return Err(YpbankError::BinaryRecordTooShort);
+            }
 
             let id = read_n_bytes!(r, 8)?;
             let record_type = read_n_bytes!(r, 1)?[0];
@@ -42,9 +72,23 @@ impl RecordReader for BinRecordReader {
             let timestamp = read_n_bytes!(r, 8)?;
             let status = read_n_bytes!(r, 1)?[0];
             let description_length = u32::from_be_bytes(read_n_bytes!(r, 4)?);
+
+            record_bytes_left -= fixed_part_length;
+            if record_bytes_left < description_length {
+                return Err(YpbankError::BinaryDescriptionTooLong);
+            }
+
             let mut description = vec![0u8; description_length as usize];
-            if r.read_exact(&mut description).is_err() {
-                return Err(YpbankError::BinaryReadError);
+            if let Err(e) = r.read_exact(&mut description) {
+                return Err(YpbankError::BinaryReadError(e.to_string()));
+            }
+
+            record_bytes_left -= description_length;
+            if record_bytes_left > 0 {
+                let mut skip_bytes = vec![0u8; record_bytes_left as usize];
+                if let Err(e) = r.read_exact(&mut skip_bytes) {
+                    return Err(YpbankError::BinaryReadError(e.to_string()));
+                }
             }
 
             bin_records.push(BinRecord {
@@ -63,16 +107,16 @@ impl RecordReader for BinRecordReader {
     }
 }
 
-pub struct BinRecordWriter;
+pub(crate) struct BinRecordWriter;
 
 impl BinRecordWriter {
-    pub fn new() -> Self {
+    pub(crate) fn new() -> Self {
         Self
     }
 }
 
 impl RecordWriter for BinRecordWriter {
-    fn write_all(&self, w: &mut dyn std::io::Write, records: &[Record]) -> Result<(), YpbankError> {
+    fn write_all<W: Write>(&self, w: &mut W, records: &[Record]) -> Result<(), YpbankError> {
         for record in records {
             let bin_record = BinRecord::from(record);
 
@@ -89,10 +133,11 @@ impl RecordWriter for BinRecordWriter {
             buffer.extend_from_slice(&bin_record.description);
 
             w.write_all(BinRecord::HEADER)
-                .map_err(|_| YpbankError::WriteError)?;
+                .map_err(|e| YpbankError::WriteError(e.to_string()))?;
             w.write_all(&(buffer.len() as u32).to_be_bytes())
-                .map_err(|_| YpbankError::WriteError)?;
-            w.write_all(&buffer).map_err(|_| YpbankError::WriteError)?;
+                .map_err(|e| YpbankError::WriteError(e.to_string()))?;
+            w.write_all(&buffer)
+                .map_err(|e| YpbankError::WriteError(e.to_string()))?;
         }
 
         Ok(())
